@@ -1,0 +1,140 @@
+// SpendGate data model
+// -----------------------------------------------------------------------------
+// MONEY CONVENTION: every monetary column is stored as an integer number of
+// minor currency units (paise for INR) using BigInt. SQLite has no true
+// decimal type, and floating-point storage is unsafe for financial values.
+// Example: ₹2,00,000.00 is stored as 20000000.
+// Conversion helpers live in server/src/lib/money.ts.
+// -----------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PurchaseRequestStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PurchaseCategory {
+  SOFTWARE
+  HARDWARE
+  OFFICE_SUPPLIES
+  TRAVEL
+  MARKETING
+  PROFESSIONAL_SERVICES
+  OTHER
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Role an approval is routed to. Thresholds live in server/src/config/approvalRules.ts.
+enum ApproverRole {
+  TEAM_LEAD
+  DEPARTMENT_MANAGER
+  FINANCE_MANAGER
+}
+
+enum AuditEntityType {
+  DEPARTMENT
+  PURCHASE_REQUEST
+  APPROVAL
+}
+
+enum AuditAction {
+  CREATED
+  UPDATED
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+  DELETED
+}
+
+model Department {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  /// Allocated budget in minor units (paise).
+  allocatedBudget BigInt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  purchaseRequests PurchaseRequest[]
+}
+
+model PurchaseRequest {
+  id            String                @id @default(cuid())
+  /// Human-friendly sequential reference, e.g. "PR-0001".
+  reference     String                @unique
+  title         String
+  description   String?
+  /// Total amount for the request in minor units (paise).
+  amount        BigInt
+  quantity      Int                   @default(1)
+  category      PurchaseCategory
+  requesterName String
+  departmentId  String
+  status        PurchaseRequestStatus @default(DRAFT)
+  submittedAt   DateTime?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  approvals  Approval[]
+
+  @@index([departmentId, status])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Approval {
+  id                String         @id @default(cuid())
+  purchaseRequestId String
+  /// Role the approval is routed to, based on the request amount.
+  approverRole      ApproverRole
+  /// Name of the person who made the decision (null while pending).
+  approverName      String?
+  /// Step in the approval chain. The MVP uses a single step (1).
+  approvalLevel     Int            @default(1)
+  status            ApprovalStatus @default(PENDING)
+  /// Approval note, or the mandatory rejection reason.
+  comments          String?
+  /// When the approve/reject decision was recorded.
+  decidedAt         DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  purchaseRequest PurchaseRequest @relation(fields: [purchaseRequestId], references: [id], onDelete: Cascade)
+
+  @@unique([purchaseRequestId, approvalLevel])
+  @@index([status, approverRole])
+}
+
+/// Append-only audit trail. Intentionally has no foreign keys so history
+/// survives even if the referenced entity is removed.
+model AuditLog {
+  id          String          @id @default(cuid())
+  entityType  AuditEntityType
+  entityId    String
+  action      AuditAction
+  performedBy String
+  /// JSON-encoded string with change details (SQLite has no native JSON column).
+  details     String?
+  createdAt   DateTime        @default(now())
+
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}

@@ -1,0 +1,40 @@
+# Render Blueprint - one web service hosting the dashboard, REST API and MCP endpoint.
+# Deploy: push this repo to GitHub, then in Render choose New > Blueprint and select the repo.
+#
+# DEMO HOSTING NOTES
+# - Free instances sleep when idle; the first request after a pause can take up to a minute.
+# - The free filesystem is ephemeral: the SQLite database is recreated (with fictional demo
+#   data) on every deploy/restart. Use a persistent disk or PostgreSQL for real use.
+# - Check Render's current plans and limits before relying on the free tier.
+services:
+  - type: web
+    name: spendgate
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./prod.db
+      - key: API_HOST
+        value: 0.0.0.0
+      # Generate locally (64 hex chars) and paste when Render prompts:
+      #   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      # Hex keeps the secret URL path variant (/mcp/<token>) URL-safe.
+      - key: MCP_AUTH_TOKEN
+        sync: false
+      - key: MCP_CLIENT_NAME
+        value: Claude MCP
+      - key: MCP_APPROVER_ROLES
+        value: TEAM_LEAD,DEPARTMENT_MANAGER
+      - key: SEED_DEMO_DATA
+        value: "true"
+      # Build-time flag for the dashboard's "demo environment" banner.
+      - key: VITE_DEMO_MODE
+        value: "true"
