@@ -9,6 +9,39 @@ Users can work with SpendGate in two ways:
 
 > **Status: Phase 3 (MCP integration).** Purchase requests, budget validation, approval routing, approvals, audit logs and the live dashboard work through the web UI **and** through five MCP tools over Streamable HTTP. The REST API and MCP share one service layer, so the business rules exist in only one place.
 
+
+<!-- reviewer-access:start -->
+## Try it with Claude (assignment reviewers)
+
+| What | Link |
+| ---- | ---- |
+| Live app (dashboard) | https://spendgate-qzpx.onrender.com (no login; fictional demo data) |
+| MCP link for claude.ai | `https://spendgate-qzpx.onrender.com/mcp/c980a64b84d4dd6fb565fe0bd533e9feac994f4b54b5d8b727d6c0a155b875bb` |
+| MCP link for Claude Code | `https://spendgate-qzpx.onrender.com/mcp` with header `Authorization: Bearer c980a64b84d4dd6fb565fe0bd533e9feac994f4b54b5d8b727d6c0a155b875bb` |
+| Reviewer token | `c980a64b84d4dd6fb565fe0bd533e9feac994f4b54b5d8b727d6c0a155b875bb` |
+
+**Connect from claude.ai (web or desktop app):**
+
+1. Open **Settings → Connectors → Add custom connector**.
+2. Name it **SpendGate** and paste the claude.ai MCP link above, then save.
+3. Start a new chat, enable SpendGate in the tools menu, and try:
+   - "Show me all pending purchase requests."
+   - "What is the remaining engineering budget?"
+   - "Create a ₹20,000 purchase request for engineering for laptop accessories and submit it."
+   - "Edit <the new PR reference> and increase its amount to ₹25,000."
+   - "Approve <the new PR reference>."
+
+Open the live app alongside to watch the dashboard and audit log update.
+
+**Connect from Claude Code:**
+
+```bash
+claude mcp add --transport http spendgate https://spendgate-qzpx.onrender.com/mcp --header "Authorization: Bearer c980a64b84d4dd6fb565fe0bd533e9feac994f4b54b5d8b727d6c0a155b875bb"
+```
+
+> **Demo-only token.** It reaches fictional data only. Claude cannot approve requests above ₹50,000 (a server-side rule). The data resets when the free server restarts, and the token will be rotated after the review. The first request after the server has been idle can take up to a minute.
+<!-- reviewer-access:end -->
+
 ## Business rules
 
 | Rule | Implementation |
@@ -105,7 +138,11 @@ Then start everything: `npm run dev` (API and dashboard) and `npm run dev:mcp` (
 
 ### Connecting Claude
 
-> These steps follow each client's documented setup. Only the SDK test client has connected so far (see the test results below); connection from Claude itself has **not** been verified yet.
+> **Verified on 12 Nov 2026:**
+> - Claude Code connected to the local MCP server and ran `get_budget_summary` and `list_purchase_requests`.
+> - A Claude session connected to the live endpoint and created a request through MCP; the audit log tags it `channel: mcp`.
+>
+> Not every tool has been run through the claude.ai connector yet.
 
 **Claude Code (local):**
 

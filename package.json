@@ -8,11 +8,11 @@
     "server"
   ],
   "scripts": {
-    "dev": "concurrently -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
-    "dev:server": "npm run dev -w server",
-    "dev:client": "npm run dev -w client",
-    "dev:mcp": "npm run dev:mcp -w server",
-    "build": "npm run db:generate && npm run build -w server && npm run build -w client",
+    "dev": "node init && concurrently -n server,client -c blue,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "dev:server": "node init && npm run dev -w server",
+    "dev:client": "node init && npm run dev -w client",
+    "dev:mcp": "node init && npm run dev:mcp -w server",
+    "build": "node init && npm run db:generate && npm run build -w server && npm run build -w client",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -23,13 +23,15 @@
     "test:smoke": "npm run test:smoke -w server",
     "test:mcp": "npm run test:mcp -w server",
     "setup": "npm install && npm run db:migrate -- --name init && npm run db:seed",
-    "start:prod": "prisma migrate deploy && node server/dist/database/seed.js && node server/dist/production.js"
+    "start:prod": "node init && prisma migrate deploy && node server/dist/database/seed.js && node server/dist/production.js"
   },
   "engines": {
     "node": ">=20.19.0"
   },
   "devDependencies": {
     "concurrently": "^10.0.7",
+    "dotenv": "^8.2.0",
+    "node-fetch": "^3.3.2",
     "prisma": "^6.19.3"
   },
   "allowScripts": {
