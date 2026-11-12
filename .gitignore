@@ -4,8 +4,6 @@ build/
 coverage/
 
 # Environment
-.env
-.env.*
 !.env.example
 
 # SQLite databases (incl. WAL-mode side files, which contain data)
@@ -19,6 +17,6 @@ coverage/
 npm-debug.log*
 .DS_Store
 Thumbs.db
-.vscode/*
 !.vscode/extensions.json
 .idea/
+config.bat
